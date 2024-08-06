@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Stock Price Prediction</h1>
+        <form id="prediction-form">
+            <div class="form-group">
+                <label for="ticker">Stock Name: (e.g. IDEA)</label>
+                <input type="text" id="ticker" name="ticker" required>
+                <small>Enter stock name; will auto-append exchange extension based on selection</small>
+            </div>
+            <div class="form-group">
+                <label for="exchange">Stock Exchange:</label>
+                <select id="exchange" name="exchange" required>
+                    <option value="" disabled selected>Select Exchange</option>
+                    <option value="NS">NSE (National Stock Exchange)</option>
+                    <option value="BO">BSE (Bombay Stock Exchange)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start_date">Start Date:</label>
+                <input type="date" id="start_date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date:</label>
+                <input type="date" id="end_date" name="end_date" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Submit</button>
+            </div>
+            <div class="spinner-container" id="spinner-container" style="display:none;">
+                <div class="spinner"></div>
+                <p class="spinner-message">Processing your request...</p>
+            </div>
+        </form>
+        <div class="result">
+            <div id="error" class="error"></div>
+            <div id="prices" class="prices"></div>
+            <img id="plot" src="" alt="">
+        </div>
+    </div>
+    <script>
+        document.getElementById('prediction-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Show the spinner
+            document.getElementById('spinner-container').style.display = 'block';
+            
+            // Clear previous results
+            document.getElementById('error').textContent = '';
+            document.getElementById('prices').innerHTML = '';
+            document.getElementById('plot').src = '';
+            
+            var ticker = document.getElementById('ticker').value.trim();
+            var exchange = document.getElementById('exchange').value;
+            var startDate = document.getElementById('start_date').value;
+            var endDate = document.getElementById('end_date').value;
+            
+            // Append the stock exchange extension based on the selection
+            var fullTicker = `${ticker}.${exchange}`;
+            
+            var formData = new FormData();
+            formData.append('ticker', fullTicker);
+            formData.append('start_date', startDate);
+            formData.append('end_date', endDate);
+            
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide the spinner
+                document.getElementById('spinner-container').style.display = 'none';
+                
+                if (data.error) {
+                    document.getElementById('error').textContent = data.error;
+                } else {
+                    // Display the plot
+                    document.getElementById('plot').src = 'data:image/png;base64,' + data.image;
+                    
+                    // Display the most recent prices with 2 decimal places
+                    const actualRecentPrice = data.actual_recent_price;
+                    const predictedRecentPrice = data.predicted_recent_price;
+                    
+                    document.getElementById('prices').innerHTML = `
+                        <h2>Most Recent Prices</h2>
+                        <p><strong>Predicted Price:</strong> ${predictedRecentPrice}</p>
+                        <p><strong>Actual Price:</strong> ${actualRecentPrice}</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                // Hide the spinner
+                document.getElementById('spinner-container').style.display = 'none';
+                document.getElementById('error').textContent = 'An error occurred while processing your request.';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
