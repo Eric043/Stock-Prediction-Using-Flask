@@ -86,3 +86,69 @@ h1 {
     color: red;
     text-align: center;
 }
+
+/* Media Queries for Responsive Design */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 90%;
+    }
+}
+
+@media (max-width: 992px) {
+    .container {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        max-width: 98%;
+        padding: 15px;
+    }
+
+    .form-group label {
+        font-size: 14px;
+    }
+
+    .form-group input, .form-group select, .form-group button {
+        font-size: 14px;
+        padding: 6px;
+    }
+
+    .spinner {
+        width: 30px;
+        height: 30px;
+    }
+
+    .spinner-message {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+    }
+
+    .form-group input, .form-group select, .form-group button {
+        font-size: 12px;
+        padding: 5px;
+    }
+
+    .spinner {
+        width: 25px;
+        height: 25px;
+    }
+
+    .spinner-message {
+        font-size: 12px;
+    }
+}
