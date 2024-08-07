@@ -47,12 +47,12 @@ def train_and_predict(ticker, start_date, end_date):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
     
     model = Sequential()
-    model.add(LSTM(units=20, return_sequences=True, input_shape=(X_train.shape[1], 1)))
-    model.add(LSTM(units=20))
+    model.add(LSTM(units=30, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+    model.add(LSTM(units=30))
     model.add(Dense(units=1))
     
     model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X_train, y_train, epochs=10, batch_size=16, verbose=0)  # Reduced units, epochs, and batch size
+    model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)  # Reduced units, epochs, and batch size
     
     predicted_stock_price = model.predict(X_test)
     predicted_stock_price = scaler.inverse_transform(predicted_stock_price.reshape(-1, 1))
