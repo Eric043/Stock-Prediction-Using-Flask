@@ -3,12 +3,11 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM
+from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 import io
 import base64
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -25,10 +24,10 @@ def train_and_predict(ticker, start_date, end_date):
     data, error = get_stock_data(ticker, start_date, end_date)
     
     if error:
-        return None, None, error
+        return None, None, None, error
     
     if data.shape[0] <= 1:
-        return None, None, "Not enough data to proceed."
+        return None, None, None, "Not enough data to proceed."
     
     data = data[['Close']]
     
@@ -42,32 +41,28 @@ def train_and_predict(ticker, start_date, end_date):
         y.append(scaled_data[i, 0])
     
     X, y = np.array(X), np.array(y)
-    X = np.reshape(X, (X.shape[0], X.shape[1], 1))
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+    model = RandomForestRegressor(n_estimators=100)
+    model.fit(X, y)
     
-    model = Sequential()
-    model.add(LSTM(units=30, return_sequences=True, input_shape=(X_train.shape[1], 1)))
-    model.add(LSTM(units=30))
-    model.add(Dense(units=1))
-    
-    model.compile(optimizer='adam', loss='mean_squared_error')
-    model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)  # Reduced units, epochs, and batch size
-    
-    predicted_stock_price = model.predict(X_test)
-    predicted_stock_price = scaler.inverse_transform(predicted_stock_price.reshape(-1, 1))
-    actual_stock_price = scaler.inverse_transform(y_test.reshape(-1, 1))
-    
-    return actual_stock_price, predicted_stock_price, None
+    last_value = scaled_data[-look_back:]  # Get the last value to predict tomorrow
+    predicted_tomorrow_price = model.predict(last_value)
+    predicted_tomorrow_price = scaler.inverse_transform(predicted_tomorrow_price.reshape(-1, 1))
 
-def plot_results(actual_stock_price, predicted_stock_price, ticker):
+    predicted_stock_price = model.predict(X)
+    predicted_stock_price = scaler.inverse_transform(predicted_stock_price.reshape(-1, 1))
+    actual_stock_price = scaler.inverse_transform(y.reshape(-1, 1))
+    
+    return actual_stock_price, predicted_stock_price, predicted_tomorrow_price, None
+
+def plot_results(actual_stock_price, predicted_stock_price, ticker, tomorrow_date):
     if actual_stock_price is None or predicted_stock_price is None:
         return None
 
     plt.figure(figsize=(14, 5))
-    plt.plot(actual_stock_price, color='red', label='Actual Stock Price')
-    plt.plot(predicted_stock_price, color='blue', label='Predicted Stock Price')
-    plt.title(f'{ticker} Stock Price Prediction')
+    plt.plot(actual_stock_price, color='red', label='Today Stock Price')
+    plt.plot(predicted_stock_price, color='blue', label='Predicted Tomorrow Stock Price')
+    plt.title(f'{ticker} Stock Price Prediction as of {tomorrow_date}')
     plt.xlabel('Time')
     plt.ylabel('Stock Price')
     plt.legend()
@@ -92,20 +87,26 @@ def predict():
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
     
-    actual_stock_price, predicted_stock_price, error = train_and_predict(ticker, start_date, end_date)
+    # Calculate tomorrow's date
+    tomorrow_date = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    actual_stock_price, predicted_stock_price, predicted_tomorrow_price, error = train_and_predict(ticker, start_date, end_date)
     
     if error:
         return jsonify({'error': error})
     
-    img_str = plot_results(actual_stock_price, predicted_stock_price, ticker)
+    img_str = plot_results(actual_stock_price, predicted_stock_price, ticker, tomorrow_date)
     
     actual_recent_price = f"{actual_stock_price[-1][0]:.2f}" if actual_stock_price is not None and len(actual_stock_price) > 0 else "N/A"
     predicted_recent_price = f"{predicted_stock_price[-1][0]:.2f}" if predicted_stock_price is not None and len(predicted_stock_price) > 0 else "N/A"
+    predicted_tomorrow_price = f"{predicted_tomorrow_price[0][0]:.2f}" if predicted_tomorrow_price is not None else "N/A"
 
     return jsonify({
         'image': img_str,
         'actual_recent_price': actual_recent_price,
-        'predicted_recent_price': predicted_recent_price
+        'predicted_recent_price': predicted_recent_price,
+        'predicted_tomorrow_price': predicted_tomorrow_price,
+        'tomorrow_date': tomorrow_date
     })
 
 if __name__ == '__main__':
