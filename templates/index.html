@@ -4,20 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Price Prediction</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        /* Optional: Smooth scrolling for the entire page */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Stock Price Prediction</h1>
+
+    <!-- Landing Section -->
+    <section id="landing" class="d-flex align-items-center justify-content-center vh-100">
+        <div class="text-center">
+            <h1 class="display-4">Stock Price Prediction</h1>
+            <div class="scroll-down mt-4">
+                <img src="{{ url_for('static', filename='images/scrolldown.gif') }}" alt="Scroll Down" class="scroll-icon">
+            </div>
+        </div>
+    </section>
+
+    <!-- Form Section -->
+    <section id="form-section" class="container py-5">
+        <h2 class="text-center mb-5">Enter Stock Details</h2>
         <form id="prediction-form">
             <div class="form-group">
                 <label for="ticker">Stock Name: (e.g. IDEA)</label>
-                <input type="text" id="ticker" name="ticker" required>
-                <small>Enter stock name; will auto-append exchange extension based on selection</small>
+                <input type="text" class="form-control" id="ticker" name="ticker" required>
+                <small class="form-text text-muted">Enter stock name; will auto-append exchange extension based on selection</small>
             </div>
             <div class="form-group">
                 <label for="exchange">Stock Exchange:</label>
-                <select id="exchange" name="exchange" required>
+                <select class="form-control" id="exchange" name="exchange" required>
                     <option value="" disabled selected>Select Exchange</option>
                     <option value="NS">NSE (National Stock Exchange)</option>
                     <option value="BO">BSE (Bombay Stock Exchange)</option>
@@ -25,54 +45,81 @@
             </div>
             <div class="form-group">
                 <label for="start_date">Start Date:</label>
-                <input type="date" id="start_date" name="start_date" required>
+                <input type="date" class="form-control" id="start_date" name="start_date" required>
             </div>
             <div class="form-group">
                 <label for="end_date">End Date:</label>
-                <input type="date" id="end_date" name="end_date" required>
+                <input type="date" class="form-control" id="end_date" name="end_date" required>
             </div>
-            <div class="form-group">
-                <button type="submit">Submit</button>
-            </div>
-            <div class="spinner-container" id="spinner-container" style="display:none;">
-                <div class="spinner"></div>
+            <button type="submit" class="btn btn-success">Submit</button>
+            <div class="spinner-container mt-3" id="spinner-container" style="display:none;">
+                <div class="spinner-border" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
                 <p class="spinner-message">Processing your request...</p>
             </div>
         </form>
-        <div class="result">
-            <div id="error" class="error"></div>
-            <div id="prices" class="prices"></div>
-            <img id="plot" src="" alt="">
-        </div>
-    </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results-section" class="container py-5" style="display:none;">
+        <h2 class="text-center mb-5">Results</h2>
+        <div id="error" class="alert alert-danger" style="display:none;"></div>
+        <div id="today-date" class="mb-3"></div>
+        <div id="yesterday-date" class="mb-3"></div>
+        <div id="today-price" class="mb-3"></div>
+        <div id="yesterday-price" class="mb-3"></div>
+        <div id="predicted-price" class="mb-3"></div>
+        <div id="predicted-tomorrow-price" class="mb-3"></div>
+        <img id="plot" class="img-fluid" src="" alt="Stock Price Chart">
+    </section>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Scroll to the landing section on page load
+        window.onload = function() {
+            document.getElementById('landing').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        document.querySelector('.scroll-down').addEventListener('click', function() {
+            document.getElementById('form-section').scrollIntoView({ behavior: 'smooth' });
+        });
+
         document.getElementById('prediction-form').addEventListener('submit', function(event) {
             event.preventDefault();
             
-            // Show the spinner
+            // Show the spinner and hide the results section
             document.getElementById('spinner-container').style.display = 'block';
+            document.getElementById('results-section').style.display = 'none';
             
             // Clear previous results
-            document.getElementById('error').textContent = '';
-            document.getElementById('prices').innerHTML = '';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('today-date').innerHTML = '';
+            document.getElementById('yesterday-date').innerHTML = '';
+            document.getElementById('today-price').innerHTML = '';
+            document.getElementById('yesterday-price').innerHTML = '';
+            document.getElementById('predicted-price').innerHTML = '';
+            document.getElementById('predicted-tomorrow-price').innerHTML = '';
             document.getElementById('plot').src = '';
+
+            // Get form data
+            const ticker = document.getElementById('ticker').value;
+            const exchange = document.getElementById('exchange').value;
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
             
-            var ticker = document.getElementById('ticker').value.trim();
-            var exchange = document.getElementById('exchange').value;
-            var startDate = document.getElementById('start_date').value;
-            var endDate = document.getElementById('end_date').value;
-            
-            // Append the stock exchange extension based on the selection
-            var fullTicker = `${ticker}.${exchange}`;
-            
-            var formData = new FormData();
-            formData.append('ticker', fullTicker);
-            formData.append('start_date', startDate);
-            formData.append('end_date', endDate);
-            
+            // Send a POST request to the /predict endpoint
             fetch('/predict', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    ticker: ticker + '.' + exchange, // Append exchange to ticker
+                    start_date: startDate,
+                    end_date: endDate
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -80,27 +127,25 @@
                 document.getElementById('spinner-container').style.display = 'none';
                 
                 if (data.error) {
-                    document.getElementById('error').textContent = data.error;
+                    document.getElementById('error').innerText = data.error;
+                    document.getElementById('error').style.display = 'block';
                 } else {
-                    // Display the plot
-                    document.getElementById('plot').src = 'data:image/png;base64,' + data.image;
+                    // Display the results section and update the results
+                    document.getElementById('results-section').style.display = 'block';
+                    document.getElementById('yesterday-price').innerHTML = `<strong>Actual Closing Price of Yesterday (${data.yesterday_date}):</strong>  ${data.actual_recent_price}`;
+                    document.getElementById('predicted-price').innerHTML = `<strong>Predicted Price of Today Closing (${data.today_date}):</strong> ${data.predicted_recent_price}`;
+                    document.getElementById('predicted-tomorrow-price').innerHTML = `<strong>Predicted Price for Tomorrow Closing (${data.tomorrow_date}):</strong> ${data.predicted_tomorrow_price}`;
                     
-                    // Display the most recent prices with 2 decimal places
-                    const actualRecentPrice = data.actual_recent_price;
-                    const predictedRecentPrice = data.predicted_recent_price;
-                    
-                    document.getElementById('prices').innerHTML = `
-                        <h2>Most Recent Prices</h2>
-                        <p><strong>Predicted Tomorrow's Price:</strong> ${predictedRecentPrice}</p>
-                        <p><strong>Today's Price:</strong> ${actualRecentPrice}</p>
-                    `;
+                    // Display the chart
+                    document.getElementById('plot').src = `data:image/png;base64,${data.image}`;
                 }
             })
             .catch(error => {
                 // Hide the spinner
                 document.getElementById('spinner-container').style.display = 'none';
-                document.getElementById('error').textContent = 'An error occurred while processing your request.';
-                console.error('Error:', error);
+                
+                document.getElementById('error').innerText = 'An error occurred. Please try again.';
+                document.getElementById('error').style.display = 'block';
             });
         });
     </script>
