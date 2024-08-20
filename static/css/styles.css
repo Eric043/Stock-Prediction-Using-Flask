@@ -12,9 +12,11 @@
 
 .spinner-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
+    height: 100px; /* Adjust height if necessary */
+    text-align: center;
 }
 
 .spinner-container .spinner-message {
@@ -24,6 +26,12 @@
 .scroll-icon {
     width: 150px; /* Smaller scroll-down icon */
     height: auto;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.4em;
 }
 
 .display-4 {
