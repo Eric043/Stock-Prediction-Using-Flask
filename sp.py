@@ -35,6 +35,7 @@ def train_and_predict(ticker, start_date, end_date):
     scaled_data = scaler.fit_transform(data)
     
     look_back = 1
+
     X, y = [], []
     for i in range(look_back, len(scaled_data)):
         X.append(scaled_data[i-look_back:i, 0])
@@ -87,7 +88,9 @@ def predict():
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
     
-    # Calculate tomorrow's date
+    # Calculate today's, yesterday's, and tomorrow's dates
+    today_date = datetime.today().strftime('%Y-%m-%d')
+    yesterday_date = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
     tomorrow_date = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
     
     actual_stock_price, predicted_stock_price, predicted_tomorrow_price, error = train_and_predict(ticker, start_date, end_date)
@@ -106,8 +109,11 @@ def predict():
         'actual_recent_price': actual_recent_price,
         'predicted_recent_price': predicted_recent_price,
         'predicted_tomorrow_price': predicted_tomorrow_price,
+        'today_date': today_date,
+        'yesterday_date': yesterday_date,
         'tomorrow_date': tomorrow_date
     })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
