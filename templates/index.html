@@ -31,7 +31,7 @@
         <h2 class="text-center mb-5">Enter Stock Details</h2>
         <form id="prediction-form">
             <div class="form-group">
-                <label for="ticker">Stock Name: (e.g. IDEA)</label>
+                <label for="ticker">Stock Name: (e.g. IDEA, SBIN, TATAPOWER)</label>
                 <input type="text" class="form-control" id="ticker" name="ticker" required>
                 <small class="form-text text-muted">Enter stock name; will auto-append exchange extension based on selection</small>
             </div>
@@ -42,14 +42,6 @@
                     <option value="NS">NSE (National Stock Exchange)</option>
                     <option value="BO">BSE (Bombay Stock Exchange)</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <label for="start_date">Start Date:</label>
-                <input type="date" class="form-control" id="start_date" name="start_date" required>
-            </div>
-            <div class="form-group">
-                <label for="end_date">End Date:</label>
-                <input type="date" class="form-control" id="end_date" name="end_date" required>
             </div>
             <button type="submit" class="btn btn-success">Submit</button>
             <div class="spinner-container mt-3" id="spinner-container" style="display:none;">
@@ -106,8 +98,6 @@
             // Get form data
             const ticker = document.getElementById('ticker').value;
             const exchange = document.getElementById('exchange').value;
-            const startDate = document.getElementById('start_date').value;
-            const endDate = document.getElementById('end_date').value;
             
             // Send a POST request to the /predict endpoint
             fetch('/predict', {
@@ -117,8 +107,6 @@
                 },
                 body: new URLSearchParams({
                     ticker: ticker + '.' + exchange, // Append exchange to ticker
-                    start_date: startDate,
-                    end_date: endDate
                 })
             })
             .then(response => response.json())
@@ -131,8 +119,8 @@
                     document.getElementById('error').style.display = 'block';
                 } else {
                     // Display the results section and update the results
-                    document.getElementById('results-section').style.display = 'block';
-                    document.getElementById('yesterday-price').innerHTML = `<strong>Actual Closing Price of Yesterday (${data.yesterday_date}):</strong>  ${data.actual_recent_price}`;
+                    document.getElementById('results-section').style.display = 'block'; 
+                    document.getElementById('yesterday-price').innerHTML = `<strong>Actual Closing Price of Yesterday (${data.yesterday_date}):</strong> ${data.actual_recent_price}`;
                     document.getElementById('predicted-price').innerHTML = `<strong>Predicted Price of Today Closing (${data.today_date}):</strong> ${data.predicted_recent_price}`;
                     document.getElementById('predicted-tomorrow-price').innerHTML = `<strong>Predicted Price for Tomorrow Closing (${data.tomorrow_date}):</strong> ${data.predicted_tomorrow_price}`;
                     
